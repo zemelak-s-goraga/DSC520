@@ -1,0 +1,285 @@
+
+
+
+R Codes
+
+
+# Load required libraries
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(knitr)
+
+# Import datasets
+df_a <- read.csv("path_to_dataset_A.csv")
+df_b <- read.csv("path_to_dataset_B.csv")
+df_c <- read.csv("path_to_dataset_C.csv")
+df_d <- read.csv("path_to_dataset_D.csv")
+
+# Data wrangling for each dataset
+# Assuming potential issues such as missing values, duplicates, and inconsistencies
+
+# Data wrangling for df_a
+df_a <- df_a %>%
+  filter(!is.na(Value)) %>%
+  distinct() %>%
+  mutate(Year = as.integer(Year)) %>%
+  filter(Year >= 1961 & Year <= 2013)
+
+# Data wrangling for df_b
+df_b <- df_b %>%
+  filter(!is.na(Value)) %>%
+  distinct() %>%
+  mutate(Year = as.integer(Year)) %>%
+  filter(Year >= 1961 & Year <= 2013)
+
+# Data wrangling for df_c
+df_c <- df_c %>%
+  filter(!is.na(value)) %>%
+  distinct() %>%
+  mutate(year = as.integer(year)) %>%
+  filter(year >= 1961 & year <= 2013)
+
+# Data wrangling for df_d
+df_d <- df_d %>%
+  filter(!is.na(Value)) %>%
+  distinct() %>%
+  mutate(Year = as.integer(Year)) %>%
+  filter(Year >= 1961 & Year <= 2013)
+
+# Show the final dataset (first 20 rows) in condensed form
+
+# Display df_a
+cat("Dataset A (df_a):")
+kable(head(df_a, 20))
+
+# Display df_b
+cat("Dataset B (df_b):")
+kable(head(df_b, 20))
+
+# Display df_c
+cat("Dataset C (df_c):")
+kable(head(df_c, 20))
+
+# Display df_d
+cat("Dataset D (df_d):")
+kable(head(df_d, 20))
+
+# Structure of each dataset
+str(df_a)
+str(df_b)
+str(df_c)
+str(df_d)
+
+# Rename 'Area' as 'country', and 'Item' as 'animal_type'
+rename_cols <- function(df) {
+  colnames(df)[colnames(df) == "Area"] <- "country"
+  colnames(df)[colnames(df) == "Item"] <- "animal_type"
+  return(df)
+}
+
+df_a <- rename_cols(df_a)
+df_b <- rename_cols(df_b)
+df_c <- rename_cols(df_c)
+df_d <- rename_cols(df_d)
+
+# Assuming data wrangling involves handling missing values, removing duplicates, and converting data types.
+
+# Example data wrangling for df_a 
+
+# Handling missing values
+df_a <- na.omit(df_a)
+
+# Removing duplicates
+df_a <- unique(df_a)
+
+# Converting data types if needed
+df_a$Year <- as.factor(df_a$Year)
+df_a$Value <- as.numeric(df_a$Value)
+
+# Summary statistics for each dataset
+summary(df_a)
+summary(df_b)
+summary(df_c)
+summary(df_d)
+
+
+
+
+# 1. Trend in the import quantities of cattle from the top 10 countries over the past 10 years
+import_cattle <- df_c %>%
+  filter(animal_type == "Cattle" & element == "Import Quantity") %>%
+  group_by(country, year) %>%
+  summarise(total_quantity = sum(value)) %>%
+  top_n(10, total_quantity)
+
+ggplot(import_cattle, aes(x = year, y = total_quantity, color = country)) +
+  geom_line() +
+  labs(title = "Trend in Import Quantities of Cattle from Top 10 Countries",
+       x = "Year",
+       y = "Total Quantity") +
+  theme_minimal()
+
+# 2. Trend in the export quantities of cattle from the top 10 countries over the past 10 years
+export_cattle <- df_a %>%
+  filter(animal_type == "Cattle" & element == "Export Quantity") %>%
+  group_by(country, Year) %>%
+  summarise(total_quantity = sum(Value)) %>%
+  top_n(10, total_quantity)
+
+ggplot(export_cattle, aes(x = Year, y = total_quantity, color = country)) +
+  geom_line() +
+  labs(title = "Trend in Export Quantities of Cattle from Top 10 Countries",
+       x = "Year",
+       y = "Total Quantity") +
+  theme_minimal()
+
+# 3. Evolution of export quantity of sheep from Australia over the years
+export_sheep_australia <- df_a %>%
+  filter(country == "Australia", animal_type == "Sheep", element == "Export Quantity") %>%
+  ggplot(aes(x = Year, y = Value)) +
+  geom_line() +
+  labs(title = "Evolution of Export Quantity of Sheep from Australia",
+       x = "Year",
+       y = "Export Quantity") +
+  theme_minimal()
+
+print(export_sheep_australia)
+
+# 4. Correlation between export quantity and export value of sheep in Australia
+correlation_sheep_australia <- df_a %>%
+  filter(country == "Australia", animal_type == "Sheep") %>%
+  select(Value, element) %>%
+  pivot_wider(names_from = element, values_from = Value) %>%
+  summarise(correlation = cor(`Export Quantity`, `Export Value`, use = "complete.obs"))
+
+print(correlation_sheep_australia)
+
+# 5. Evolution of import quantity of chicken from Europe over the years
+import_chicken_europe <- df_c %>%
+  filter(country == "Europe", animal_type == "Chickens", element == "Import Quantity") %>%
+  ggplot(aes(x = year, y = value)) +
+  geom_line() +
+  labs(title = "Evolution of Import Quantity of Chicken from Europe",
+       x = "Year",
+       y = "Import Quantity") +
+  theme_minimal()
+
+print(import_chicken_europe)
+
+# 6. Correlation between import quantity and import values of chicken in Europe
+correlation_chicken_europe <- df_c %>%
+  filter(country == "Europe", animal_type == "Chickens") %>%
+  select(value, element) %>%
+  pivot_wider(names_from = element, values_from = value) %>%
+  summarise(correlation = cor(`Import Quantity`, `Import Value`, use = "complete.obs"))
+
+print(correlation_chicken_europe)
+
+# 7. Overall trend in the import and export values of pigs from the top 10 countries over the past 10 years
+import_export_pigs <- bind_rows(
+  df_b %>% filter(animal_type == "Pigs", element == "Export Value"),
+  df_c %>% filter(animal_type == "Pigs", element == "Import Value")
+) %>%
+  group_by(country, element, Year) %>%
+  summarise(total_value = sum(Value)) %>%
+  top_n(10, total_value)
+
+ggplot(import_export_pigs, aes(x = Year, y = total_value, color = country)) +
+  geom_line() +
+  facet_wrap(~element) +
+  labs(title = "Overall Trend in Import and Export Values of Pigs from Top 10 Countries",
+       x = "Year",
+       y = "Total Value") +
+  theme_minimal()
+
+# 8. Notable changes in the import and export values of pigs in Europe over the past 10 years
+import_export_pigs_europe <- bind_rows(
+  df_b %>% filter(country == "Europe", animal_type == "Pigs", element == "Export Value"),
+  df_c %>% filter(country == "Europe", animal_type == "Pigs", element == "Import Value")
+) %>%
+  group_by(element, Year) %>%
+  summarise(total_value = sum(Value))
+
+ggplot(import_export_pigs_europe, aes(x = Year, y = total_value, color = element)) +
+  geom_line() +
+  labs(title = "Import and Export Values of Pigs in Europe",
+       x = "Year",
+       y = "Total Value") +
+  theme_minimal()
+
+
+
+
+9. Regression Analysis
+
+
+
+Simple linear Regression analysis
+
+
+# Load required libraries
+library(tidyverse)
+library(lubridate)
+library(caret)
+
+# Step 1: Data Preparation
+# For regression analysis, we need numeric variables, so 'year' converted to numeric
+df_a$year <- as.numeric(df_a$year)
+df_b$year <- as.numeric(df_b$year)
+df_c$year <- as.numeric(df_c$year)
+df_d$year <- as.numeric(df_d$year)
+
+# Step 2: Fit Regression Model
+# Let's fit a linear regression model to predict export value based on export quantity
+model <- lm(Value ~ Value, data = df_a)
+
+# Step 3: Evaluate Model Accuracy
+# To evaluate the model accuracy, we can use cross-validation
+cv_results <- train(model,
+                    data = df_a,
+                    method = "lm",
+                    trControl = trainControl(method = "cv", number = 10))
+
+# Print model accuracy
+print(cv_results)
+
+
+This code performs a simple linear regression analysis to predict export value based on export quantity. Then, it evaluates the model accuracy using 10-fold cross-validation. 
+
+
+
+
+
+
+Multiple regression
+
+
+# Load required libraries
+library(tidyverse)
+library(lubridate)
+library(caret)
+
+
+# Step 1: Data Preparation
+# For regression analysis, we need numeric variables, so 'year' converted to numeric
+df_a$year <- as.numeric(df_a$year)
+df_b$year <- as.numeric(df_b$year)
+df_c$year <- as.numeric(df_c$year)
+df_d$year <- as.numeric(df_d$year)
+
+# Step 2: Fit Multiple Regression Model
+# Let's fit a multiple regression model to predict export value based on export quantity and year
+model <- lm(Value ~ Quantity + year, data = df_a)
+
+# Step 3: Evaluate Model Accuracy
+# To evaluate the model accuracy, we can use cross-validation
+cv_results <- train(model,
+                    data = df_a,
+                    method = "lm",
+                    trControl = trainControl(method = "cv", number = 10))
+
+# Print model accuracy
+print(cv_results)
+
+In this code, we're fitting a multiple regression model with export quantity and year as predictor variables to predict export value. Then, we're evaluating the model accuracy using 10-fold cross-validation. 
